@@ -40,17 +40,22 @@ class CompareResult:
         return statistics.mean(self.prices) if self.prices else None
 
 
-PRICE_RE = re.compile(r"(?:¥|￥)?\s*([0-9]+(?:\.[0-9]+)?)")
+PRICE_TOKEN_RE = re.compile(
+    r"(?:[¥￥]\s*([0-9]+(?:\.[0-9]+)?)|([0-9]+(?:\.[0-9]+)?)\s*元)"
+)
 
 
 def parse_price(text: str) -> float | None:
-    m = PRICE_RE.search(text.replace(",", ""))
-    if not m:
-        return None
-    try:
-        return float(m.group(1))
-    except ValueError:
-        return None
+    normalized_text = text.replace(",", "")
+    for m in PRICE_TOKEN_RE.finditer(normalized_text):
+        amount = m.group(1) or m.group(2)
+        if not amount:
+            continue
+        try:
+            return float(amount)
+        except ValueError:
+            continue
+    return None
 
 
 def normalize_name(raw_name: str, prefix_brand: str = "spark", scale: str = "1/43") -> str:
